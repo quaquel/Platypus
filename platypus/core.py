@@ -82,6 +82,8 @@ class FixedLengthArray(object):
 def _convert_constraint(x):
     if isinstance(x, Constraint):
         return x
+    elif isinstance(x, (list, tuple)):
+        return [_convert_constraint(y) for y in x]
     else:
         return Constraint(x)
 
@@ -286,7 +288,7 @@ class Algorithm(object):
         
         self.nfe += len(unevaluated)
     
-    def run(self, condition):
+    def run(self, condition, callback=None):
         if isinstance(condition, int):
             condition = MaxEvaluations(condition)
             
@@ -307,6 +309,9 @@ class Algorithm(object):
                            type(self).__name__,
                            self.nfe,
                            datetime.timedelta(seconds=time.time()-start_time))
+
+            if callback is not None:
+                callback(self)
                 
         LOGGER.log(logging.INFO,
                    "%s finished; Total NFE: %d, Elapsed Time: %s",
