@@ -1,4 +1,4 @@
-# Copyright 2015-2016 David Hadka
+# Copyright 2015-2018 David Hadka
 #
 # This file is part of Platypus, a Python module for designing and using
 # evolutionary algorithms (EAs) and multiobjective evolutionary algorithms
@@ -21,6 +21,7 @@ from __future__ import absolute_import, division, print_function
 import sys
 import math
 import random
+import inspect
 import operator
 import functools
 from functools import reduce
@@ -464,6 +465,15 @@ def check_eigensystem(n, C, diag, Q):
 
 # Modified from RosettaCode.org (http://rosettacode.org/wiki/Gray_code#Python)
 def int2bin(n, nbits):
+    """Converts an integer into a binary string.
+    
+    Parameters
+    ----------
+    n : int
+        The integer value.
+    nbits:
+        The number of bits used to encode the value.
+    """
     bits = []
     
     while n:
@@ -476,6 +486,13 @@ def int2bin(n, nbits):
     return bits
  
 def bin2int(bits):
+    """Converts a binary string into its integer value.
+    
+    Parameters
+    ----------
+    bits : list or tuple of bool
+        The binary string as a list of True/False values.
+    """
     i = 0
     
     for bit in bits:
@@ -484,14 +501,44 @@ def bin2int(bits):
     return i
 
 def bin2gray(bits):
+    """Converts a binary string into a gray-encoded binary string.
+    
+    Parameters
+    ----------
+    bits : list or tuple of bool
+        The binary string as a list of True/False values.
+    """
     return bits[:1] + [i ^ ishift for i, ishift in zip(bits[:-1], bits[1:])]
  
 def gray2bin(bits):
+    """Converts a gray-encoded binary string into a binary string.
+    
+    Parameters
+    ----------
+    bits : list or tuple of bool
+        The gray-encoded binary string as a list of True/False values.
+    """
     b = [bits[0]]
     for nextb in bits[1:]: b.append(b[-1] ^ nextb)
     return b
 
 def roulette(probabilities):
+    """Performs roulette wheel selection given the probabilities.
+    
+    Given a list of probabilities, selects one of the items randomly.  The
+    probabilities will be scaled if necessary, so the values do not need to
+    sum to 1.0.  Returns the index of the selected item.
+    
+    Examples
+    --------
+        # Randomly selected between two items, preferring the first
+        roulette([0.75, 0.25])
+    
+    Parameters
+    ----------
+    probabilities : list of float
+        List of probabilities of selecting each item.
+    """
     rand = random.uniform(0.0, sum(probabilities))
     value = 0.0
     
@@ -502,3 +549,48 @@ def roulette(probabilities):
             return i
         
     return 0
+
+def remove_keys(d, *keys):
+    """Returns a new dictionary with the given keys removed.
+    
+    Parameters
+    ----------
+    d : dict
+        The original dictionary.
+    keys : list of keys
+        The keys to remove.  If the key is not found in the dictionary, it is
+        ignored.
+    """
+    result = dict(d)
+    for key in keys:
+        result.pop(key, None)
+    return result
+
+def only_keys(d, *keys):
+    """Returns a new dictionary containing only the given keys.
+    
+    Parameters
+    ----------
+    d : dict
+        The original dictionary.
+    keys: list of keys
+        The keys to keep.  If a key is not found in the dictionary, it is
+        ignored.
+    """
+    result = dict()
+    for key in keys:
+        if key in d:
+            result[key] = d[key]
+    return result
+
+def only_keys_for(d, func):
+    """Returns a new dictionary containing only keys matching function arguments.
+    
+    Parameters
+    ----------
+    d : dict
+        The original dictionary.
+    func: callable
+        The function.
+    """
+    return only_keys(d, *inspect.getargspec(func)[0])
