@@ -18,6 +18,8 @@
 # along with Platypus.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import absolute_import, division, print_function
 
+import numpy as np
+
 import sys
 import math
 import random
@@ -52,10 +54,16 @@ def project(u, v):
     return multiply(dot(u, v) / dot(v, v), v)
 
 def orthogonalize(u, vs):
+#     for v in vs:
+#         u = subtract(u, project(u, v))
+
+    u = np.asarray(u)
+    vs = [np.asarray(v) for v in vs]
+
     for v in vs:
-        u = subtract(u, project(u, v))
-        
-    return u
+        u = u - ((np.dot(u, v) / np.dot(v, v)) * v)
+    return u.tolist()
+#     return u
 
 def normalize(u):
     if is_zero(u):
