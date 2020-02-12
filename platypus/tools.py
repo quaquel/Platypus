@@ -29,41 +29,78 @@ import functools
 from functools import reduce
 from .core import Solution, POSITIVE_INFINITY, EPSILON, PlatypusError
 
-def point_line_dist(point, line):
-    return magnitude(subtract(multiply(float(dot(line, point))/float(dot(line, line)), line), point))
+import warnings
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
+    warnings.simplefilter('once', DeprecationWarning)  # turn off filter
     
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        
+        warnings.warn("Call to deprecated function {}.".format(func.__name__),
+                      category=DeprecationWarning,
+                      stacklevel=2)
+#         warnings.simplefilter('default', DeprecationWarning)  # reset filter
+        return func(*args, **kwargs)
+    return new_func
+
+
+def point_line_dist(point, line):
+    point = np.asarray(point)
+    line = np.asarray(line)
+    
+    
+    x = ((np.dot(line, point))/(np.dot(line, line)) * line) - point
+    
+    return math.sqrt(np.dot(x, x))    
+#     return magnitude(subtract(multiply(float(dot(line, point))/float(dot(line, line)), line), point))
+
 def magnitude(x):
-    return math.sqrt(dot(x, x))
+    x = np.asarray(x)
+    return math.sqrt(np.dot(x, x))
 
+@deprecated
 def add(x, y):
-    return [x[i] + y[i] for i in range(len(x))]
+    return (np.asarray(x)+np.asarray(y)).tolist()
+#     return [x[i] + y[i] for i in range(len(x))]
 
+@deprecated
 def subtract(x, y):
-    return [x[i] - y[i] for i in range(len(x))]
+    return (np.asarray(x)-np.asarray(y)).tolist()
+#     return [x[i] - y[i] for i in range(len(x))]
 
+@deprecated
 def multiply(s, x):
-    return [s*x[i] for i in range(len(x))]
+    return (s*np.asarray(x)).tolist()
+#     return [s*x[i] for i in range(len(x))]
 
+@deprecated
 def dot(x, y):
-    return reduce(operator.add, [x[i]*y[i] for i in range(len(x))], 0)
+    return np.dot(np.asarray(x), np.asarray(y)).tolist()
+#     return reduce(operator.add, [x[i]*y[i] for i in range(len(x))], 0)
 
 def is_zero(x):
     return all([abs(x[i]) < EPSILON for i in range(len(x))])
 
 def project(u, v):
-    return multiply(dot(u, v) / dot(v, v), v)
+    u = np.asarray(u)
+    v = np.asarray(v)
+    
+    return (v * (np.dot(u,v) / np.dot(v,v))).tolist()
+#     return multiply(dot(u, v) / dot(v, v), v)
 
 def orthogonalize(u, vs):
-#     for v in vs:
-#         u = subtract(u, project(u, v))
-
     u = np.asarray(u)
     vs = [np.asarray(v) for v in vs]
 
     for v in vs:
         u = u - ((np.dot(u, v) / np.dot(v, v)) * v)
     return u.tolist()
-#     return u
+
 
 def normalize(u):
     if is_zero(u):
@@ -75,8 +112,8 @@ def random_vector(n, rng=functools.partial(random.gauss, 0.0, 1.0)):
     return [rng() for _ in range(n)]
 
 def zeros(m, n):
-    return [[0.0]*n for _ in range(m)]
-
+    return np.zeros((m,n)).tolist()
+    
 class SingularError(PlatypusError):
     pass
     
@@ -87,43 +124,44 @@ def lsolve(A, b):
     replaced by :code:`(x, _, _, _) = lstsq(A, b)`, but we prefer the pure
     Python implementation here.
     """
-    N = len(b)
-     
-    for p in range(N):
-        # find pivot row and swap
-        max = p
-         
-        for i in range(p+1, N):
-            if abs(A[i][p]) > abs(A[max][p]):
-                max = i
-                 
-        A[p], A[max] = A[max], A[p]
-        b[p], b[max] = b[max], b[p]
-        
-        # singular or nearly singular
-        if abs(A[p][p]) <= EPSILON:
-            raise SingularError("matrix is singular or nearly singular")
-        
-        # pivot within A and b
-        for i in range(p+1, N):
-            alpha = A[i][p] / A[p][p]
-            b[i] -= alpha * b[p]
-            
-            for j in range(p, N):
-                A[i][j] -= alpha * A[p][j]
+    (x, _, _, _) = np.linalg.lstsq(A, b)
+#     N = len(b)
+#      
+#     for p in range(N):
+#         # find pivot row and swap
+#         max = p
+#          
+#         for i in range(p+1, N):
+#             if abs(A[i][p]) > abs(A[max][p]):
+#                 max = i
+#                  
+#         A[p], A[max] = A[max], A[p]
+#         b[p], b[max] = b[max], b[p]
+#         
+#         # singular or nearly singular
+#         if abs(A[p][p]) <= EPSILON:
+#             raise SingularError("matrix is singular or nearly singular")
+#         
+#         # pivot within A and b
+#         for i in range(p+1, N):
+#             alpha = A[i][p] / A[p][p]
+#             b[i] -= alpha * b[p]
+#             
+#             for j in range(p, N):
+#                 A[i][j] -= alpha * A[p][j]
+# 
+#     # back substitution
+#     x = [0.0]*N
+#     
+#     for i in range(N-1, -1, -1):
+#         sum = 0.0
+#         
+#         for j in range(i+1, N):
+#             sum += A[i][j] * x[j]
+#             
+#         x[i] = (b[i] - sum) / A[i][i]
 
-    # back substitution
-    x = [0.0]*N
-    
-    for i in range(N-1, -1, -1):
-        sum = 0.0
-        
-        for j in range(i+1, N):
-            sum += A[i][j] * x[j]
-            
-        x[i] = (b[i] - sum) / A[i][i]
-
-    return x
+    return x.tolist()
 
 def choose(n, k):
     if 0 <= k <= n:
